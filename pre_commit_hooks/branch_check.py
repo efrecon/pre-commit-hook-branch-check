@@ -14,6 +14,39 @@ DEFAULT_ALLOWED_PATTERNS = [
 DEFAULT_DENIED_PATTERNS = []
 
 
+def get_branch_name() -> str:
+    """
+    Get the current branch name, even in detached HEAD state.
+
+    Returns:
+        The branch name as a string.
+
+    Raises:
+        RuntimeError: If the branch name cannot be determined.
+    """
+    try:
+        # Try to get the branch name using symbolic-ref
+        ref_name = subprocess.check_output(
+            ['git', 'symbolic-ref', '--short', 'HEAD'],
+            stderr=subprocess.DEVNULL
+        ).decode('utf-8').strip()
+    except subprocess.CalledProcessError:
+        # If symbolic-ref fails (e.g., detached HEAD), fall back to name-rev
+        try:
+            ref_name = subprocess.check_output(
+                ['git', 'name-rev', '--name-only', 'HEAD'],
+                stderr=subprocess.DEVNULL
+            ).decode('utf-8').strip()
+        except subprocess.CalledProcessError:
+            raise RuntimeError('Error: failed to determine the branch name. Are you in a git repository?')
+
+    chunks = ref_name.strip().split('/')
+    branch_name = '/'.join(chunks[2:])
+    if not branch_name:
+        raise RuntimeError('Error: cannot analyze branch name out of {ref_name}?')
+    return branch_name
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """
     Main function for the branch_check script. Parses the command-line
@@ -52,16 +85,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     allow_patterns = args.allow or DEFAULT_ALLOWED_PATTERNS
     deny_patterns = args.deny or DEFAULT_DENIED_PATTERNS
 
-    # Detect the current branch name using git
+    # Detect the current branch name
     try:
-        branch_name = subprocess.check_output(
-            ['git', 'rev-parse', '--abbrev-ref', 'HEAD'])\
-            .decode('utf-8').strip()
-    except FileNotFoundError:
-        print('Error: git not installed or not found in PATH.')
-        return 1
-    except subprocess.CalledProcessError:
-        print('Error: failed to get current branch name. Are you in a git repository?')
+        branch_name = get_branch_name()
+    except RuntimeError as e:
+        print(e)
         return 1
 
     # Check if the branch name matches any of the allowed patterns
