@@ -40,10 +40,10 @@ def get_branch_name() -> str:
         except subprocess.CalledProcessError:
             raise RuntimeError('Error: failed to determine the branch name. Are you in a git repository?')
 
-    chunks = ref_name.strip().split('/')
+    chunks = ref_name.split('/')
     branch_name = '/'.join(chunks[2:])
     if not branch_name:
-        raise RuntimeError('Error: cannot analyze branch name out of {ref_name}?')
+        raise RuntimeError(f'Error: cannot analyze branch name out of {ref_name}?')
     return branch_name
 
 
