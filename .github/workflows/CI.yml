@@ -25,7 +25,7 @@ jobs:
           # clone 2-4x faster. https://github.com/actions/checkout/pull/1396
           filter: blob:none
 
-      # Setup requirements, i.e. python, pre-commit, CSharpier
+      # Setup requirements, i.e. python, pre-commit
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
