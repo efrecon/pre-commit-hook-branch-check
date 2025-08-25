@@ -27,7 +27,7 @@ def get_branch_name() -> str:
     try:
         # Try to get the branch name using symbolic-ref
         ref_name = subprocess.check_output(
-            ['git', 'symbolic-ref', '--short', 'HEAD'],
+            ['git', 'symbolic-ref', 'HEAD'],
             stderr=subprocess.DEVNULL
         ).decode('utf-8').strip()
     except subprocess.CalledProcessError:
@@ -43,7 +43,7 @@ def get_branch_name() -> str:
     chunks = ref_name.split('/')
     branch_name = '/'.join(chunks[2:])
     if not branch_name:
-        raise RuntimeError(f'Error: cannot analyze branch name out of {ref_name}?')
+        raise RuntimeError(f'Error: cannot analyze branch name out of {ref_name}!')
     return branch_name
 
 

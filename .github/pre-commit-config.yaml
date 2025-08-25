@@ -3,7 +3,7 @@ repos:
   hooks:
   - id: branch-check
     name: Branch Name Check
-    entry: branch_check
-    language: python
+    entry: python -m pre_commit_hooks.branch_check
+    language: system
     pass_filenames: false
     always_run: true
