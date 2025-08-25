@@ -16,21 +16,27 @@ DEFAULT_DENIED_PATTERNS = []
 
 def get_forge_branch() -> str:
     """
-    Get the current branch name from CI environment variables.
+    Get the current branch name from CI environment variables. This function
+    checks for known environment variables set at software forges in their CI
+    systems. Focus is on the source branch of merge/pull requests as git will
+    often be in detached mode in that case.
 
     Returns:
         The current branch name as a string, empty when not found
     """
 
+    # GitHub Actions
     branch_name = ''
     source_ref = os.environ.get('GITHUB_HEAD_REF')
     if source_ref:
         branch_name = source_ref
     else:
+        # GitLab CI
         source_ref = os.environ.get('CI_MERGE_REQUEST_SOURCE_BRANCH_NAME')
         if source_ref:
             branch_name = source_ref
         else:
+            # Bitbucket Pipelines
             source_ref = os.environ.get('BITBUCKET_BRANCH')
             if source_ref:
                 branch_name = source_ref

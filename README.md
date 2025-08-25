@@ -48,3 +48,20 @@ and would enforce lowercase characters, together with a few separators.
           - --deny=^(master|main)$
           - --allow=^[0-9a-z_./-]+$
 ```
+
+## Branch Detection
+
+When run from CI systems, `git` might be in detached HEAD state.
+This happens when running during pull/merge requests.
+This hook will use known environment variables containing the name of the source branch to cover those cases.
+When the variables are not set -- in most cases -- it will first attempt to run the following command:
+
+```bash
+git symbolic-ref --short HEAD
+```
+
+When that command fail, it will revert to using:
+
+```bash
+git name-rev --name-only HEAD
+```
