@@ -4,6 +4,7 @@ import argparse
 import sys
 import subprocess
 import re
+import os
 
 # Default patterns are for conventional branches. See:
 # https://conventional-branch.github.io/
@@ -12,6 +13,29 @@ DEFAULT_ALLOWED_PATTERNS = [
     '^(main|master|develop)$'
 ]
 DEFAULT_DENIED_PATTERNS = []
+
+def get_forge_branch() -> str:
+    """
+    Get the current branch name from CI environment variables.
+
+    Returns:
+        The current branch name as a string, empty when not found
+    """
+
+    branch_name = ''
+    source_ref = os.environ.get('GITHUB_HEAD_REF')
+    if source_ref:
+        branch_name = source_ref
+    else:
+        source_ref = os.environ.get('CI_MERGE_REQUEST_SOURCE_BRANCH_NAME')
+        if source_ref:
+            branch_name = source_ref
+        else:
+            source_ref = os.environ.get('BITBUCKET_BRANCH')
+            if source_ref:
+                branch_name = source_ref
+
+    return branch_name
 
 
 def get_branch_name() -> str:
@@ -26,8 +50,8 @@ def get_branch_name() -> str:
     """
     try:
         # Try to get the branch name using symbolic-ref
-        ref_name = subprocess.check_output(
-            ['git', 'symbolic-ref', 'HEAD'],
+        branch_name = subprocess.check_output(
+            ['git', 'symbolic-ref', '--short', 'HEAD'],
             stderr=subprocess.DEVNULL
         ).decode('utf-8').strip()
     except subprocess.CalledProcessError:
@@ -37,11 +61,13 @@ def get_branch_name() -> str:
                 ['git', 'name-rev', '--name-only', 'HEAD'],
                 stderr=subprocess.DEVNULL
             ).decode('utf-8').strip()
+            if (ref_name.startswith('remotes/') or
+                ref_name.startswith('refs/')):
+                chunks = ref_name.split('/')
+                branch_name = '/'.join(chunks[2:])
         except subprocess.CalledProcessError:
             raise RuntimeError('Error: failed to determine the branch name. Are you in a git repository?')
 
-    chunks = ref_name.split('/')
-    branch_name = '/'.join(chunks[2:])
     if not branch_name:
         raise RuntimeError(f'Error: cannot analyze branch name out of {ref_name}!')
     return branch_name
@@ -87,7 +113,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     # Detect the current branch name
     try:
-        branch_name = get_branch_name()
+        branch_name = get_forge_branch()
+        if branch_name == '':
+            branch_name = get_branch_name()
     except RuntimeError as e:
         print(e)
         return 1
