@@ -25,25 +25,17 @@ def get_forge_branch() -> str:
         The current branch name as a string, empty when not found
     """
 
-    # GitHub Actions
-    branch_name = ''
-    source_ref = os.environ.get('GITHUB_HEAD_REF')
-    if source_ref:
-        branch_name = source_ref
-    else:
-        # GitLab CI
-        source_ref = os.environ.get('CI_MERGE_REQUEST_SOURCE_BRANCH_NAME')
-        if source_ref:
-            branch_name = source_ref
-        else:
-            # Bitbucket Pipelines
-            source_ref = os.environ.get('BITBUCKET_BRANCH')
-            if source_ref:
-                branch_name = source_ref
-
-    return branch_name
-
-
+    # List of known CI environment variables for branch name
+    ci_branch_env_vars = [
+        'GITHUB_HEAD_REF',                      # GitHub Actions
+        'CI_MERGE_REQUEST_SOURCE_BRANCH_NAME',  # GitLab CI
+        'BITBUCKET_BRANCH',                     # Bitbucket Pipelines
+    ]
+    for env_var in ci_branch_env_vars:
+        branch_name = os.environ.get(env_var)
+        if branch_name:
+            return branch_name
+    return ''
 def get_branch_name() -> str:
     """
     Get the current branch name, even in detached HEAD state.
