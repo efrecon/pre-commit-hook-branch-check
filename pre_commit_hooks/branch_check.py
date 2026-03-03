@@ -46,6 +46,7 @@ def get_branch_name() -> str:
     Raises:
         RuntimeError: If the branch name cannot be determined.
     """
+    branch_name = None
     try:
         # Try to get the branch name using symbolic-ref
         branch_name = subprocess.check_output(
@@ -55,19 +56,19 @@ def get_branch_name() -> str:
     except subprocess.CalledProcessError:
         # If symbolic-ref fails (e.g., detached HEAD), fall back to name-rev
         try:
-            ref_name = subprocess.check_output(
+            branch_name = subprocess.check_output(
                 ['git', 'name-rev', '--name-only', 'HEAD'],
                 stderr=subprocess.DEVNULL
             ).decode('utf-8').strip()
-            if (ref_name.startswith('remotes/') or
-                ref_name.startswith('refs/')):
-                chunks = ref_name.split('/')
+            if (branch_name.startswith('remotes/') or
+                branch_name.startswith('refs/')):
+                chunks = branch_name.split('/')
                 branch_name = '/'.join(chunks[2:])
         except subprocess.CalledProcessError:
-            raise RuntimeError('Error: failed to determine the branch name. Are you in a git repository?')
+            pass # Exception will be raised below
 
     if not branch_name:
-        raise RuntimeError(f'Error: cannot analyze branch name out of {ref_name}!')
+        raise RuntimeError('Error: failed to determine the branch name. Are you in a git repository?')
     return branch_name
 
 
