@@ -23,7 +23,7 @@ You might want to check the latest [release] of the repository and change the `r
 
 ```yaml
   - repo: https://github.com/efrecon/pre-commit-hook-branch-check
-    rev: v0.3.0
+    rev: v0.4.0
     hooks:
       - id: branch-check
 ```
@@ -41,7 +41,7 @@ and would enforce lowercase characters, together with a few separators.
 
 ```yaml
   - repo: https://github.com/efrecon/pre-commit-hook-branch-check
-    rev: v0.3.0
+    rev: v0.4.0
     hooks:
       - id: branch-check
         args:
