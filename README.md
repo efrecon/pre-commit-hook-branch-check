@@ -60,8 +60,10 @@ When the variables are not set -- in most cases -- it will first attempt to run 
 git symbolic-ref --short HEAD
 ```
 
-When that command fail, it will revert to using:
+When that command fail and a rebase is in progress,
+it uses the branch being rebased, as recorded by `git` in `rebase-merge/head-name` or `rebase-apply/head-name`.
+Otherwise, it will revert to using the following command, without the `~N` or `^N` suffix:
 
 ```bash
-git name-rev --name-only HEAD
+git name-rev --name-only --refs='refs/heads/*' --refs='refs/remotes/*' HEAD
 ```
