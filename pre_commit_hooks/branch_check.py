@@ -36,6 +36,31 @@ def get_forge_branch() -> str:
         if branch_name:
             return branch_name
     return ''
+
+def get_rebase_branch() -> str:
+    """
+    Get the name of the branch being rebased. git is in detached HEAD state
+    during a rebase, but records the original branch in its state directory.
+
+    Returns:
+        The branch name as a string, empty when no rebase is in progress
+    """
+    for state_dir in ['rebase-merge', 'rebase-apply']:
+        try:
+            path = subprocess.check_output(
+                ['git', 'rev-parse', '--git-path', f'{state_dir}/head-name'],
+                stderr=subprocess.DEVNULL
+            ).decode('utf-8').strip()
+        except subprocess.CalledProcessError:
+            return ''
+        if os.path.isfile(path):
+            with open(path, encoding='utf-8') as f:
+                head_name = f.read().strip()
+            # head-name is "detached HEAD" when the rebase started detached
+            if head_name.startswith('refs/heads/'):
+                return head_name[len('refs/heads/'):]
+    return ''
+
 def get_branch_name() -> str:
     """
     Get the current branch name, even in detached HEAD state.
@@ -46,7 +71,8 @@ def get_branch_name() -> str:
     Raises:
         RuntimeError: If the branch name cannot be determined.
     """
-    branch_name = None
+    branch_name = ''
+    ref_name = ''
     try:
         # Try to get the branch name using symbolic-ref
         branch_name = subprocess.check_output(
@@ -54,21 +80,29 @@ def get_branch_name() -> str:
             stderr=subprocess.DEVNULL
         ).decode('utf-8').strip()
     except subprocess.CalledProcessError:
-        # If symbolic-ref fails (e.g., detached HEAD), fall back to name-rev
-        try:
-            branch_name = subprocess.check_output(
-                ['git', 'name-rev', '--name-only', 'HEAD'],
-                stderr=subprocess.DEVNULL
-            ).decode('utf-8').strip()
-            if (branch_name.startswith('remotes/') or
-                branch_name.startswith('refs/')):
-                chunks = branch_name.split('/')
+        # If symbolic-ref fails (e.g., detached HEAD), use the branch being
+        # rebased, if any, and fall back to name-rev otherwise.
+        branch_name = get_rebase_branch()
+        if not branch_name:
+            try:
+                ref_name = subprocess.check_output(
+                    ['git', 'name-rev', '--name-only',
+                     '--refs=refs/heads/*', '--refs=refs/remotes/*', 'HEAD'],
+                    stderr=subprocess.DEVNULL
+                ).decode('utf-8').strip()
+            except subprocess.CalledProcessError:
+                raise RuntimeError('Error: failed to determine the branch name. Are you in a git repository?')
+            # Remove the ~N and ^N suffixes, e.g. feature/foo~2 -> feature/foo
+            name = re.sub(r'[~^].*$', '', ref_name)
+            if name.startswith('remotes/') or name.startswith('refs/'):
+                chunks = name.split('/')
                 branch_name = '/'.join(chunks[2:])
-        except subprocess.CalledProcessError:
-            pass # Exception will be raised below
+            elif name != 'undefined':
+                # Local branch, name-rev gives it without a prefix
+                branch_name = name
 
     if not branch_name:
-        raise RuntimeError('Error: failed to determine the branch name. Are you in a git repository?')
+        raise RuntimeError(f'Error: cannot analyze branch name out of {ref_name}!')
     return branch_name
 
 
